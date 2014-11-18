@@ -22,7 +22,7 @@
 */
 
 #ifndef NN_WORKER_INCLUDED
-#define NN_WORKER_INCLUDED 1
+#define NN_WORKER_INCLUDED
 
 #include "fsm.h"
 #include "timerset.h"
