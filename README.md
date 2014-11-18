@@ -51,7 +51,7 @@ int main(int argc, const char * argv[]) {
 
   //free that allocation
   nn_freemsg (buf);
-  return 0;
+  //return 0;
 
 }
 ```
