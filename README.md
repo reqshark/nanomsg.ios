@@ -1,5 +1,5 @@
 # nanomsg.ios
-### this is an unncompiled, dirty but working ios/osx port of the [0.5 beta release](https://github.com/nanomsg/nanomsg/releases/tag/0.5-beta)
+### an uncompiled ios/osx port of the [0.5 beta release](https://github.com/nanomsg/nanomsg/releases/tag/0.5-beta)
 
 This directory contains all headers that interconnect various parts of
 the system. The public API, the interface for protocols and transports etc.
@@ -16,6 +16,49 @@ then go `add files to project`, selecting the entire `nanomsg.ios` directory.
 I will port the nanomsg test suite for osx/ios soon.
 
 Also instead of just adding the header files plus their internal components directly, the future plan here is to script that into a download for versioned snapshots of the nanomsg library. This future script would ideally place such header files and their internal components based on the version of the network library that works for you.
+
+# example
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+#include "nn.h"
+#include "tcp.h"
+#include "pipeline.h"
+#include "sleep.h"
+
+/*  Tests a nanomsg pipe over TCP transport. */
+
+#define SOCKET_ADDRESS "tcp://127.0.0.1:5555"
+
+int main(int argc, const char * argv[]) {
+
+  //set up some sockets
+  int s1 = nn_socket (AF_SP, NN_PUSH);
+  int s2 = nn_socket (AF_SP, NN_PULL);
+
+  //bind and connect sockets
+  nn_bind (s1, SOCKET_ADDRESS);
+  nn_connect (s2, SOCKET_ADDRESS);
+  nn_sleep (10);
+
+  //send a message
+  char *msg = "0123456789012345678901234567890123456789";
+  nn_send (s1, msg, strlen(msg), 0);
+
+  //recv a message
+  //allocate incoming message to the address of a buffer
+  char *buf = NULL;
+  nn_recv (s2, &buf, NN_MSG, 0);
+  printf("cool: %s\n",buf);
+
+  //free that allocation
+  nn_freemsg (buf);
+  return 0;
+
+}
+```
 
 please suggest/fork pull-request and submit issues.
 
