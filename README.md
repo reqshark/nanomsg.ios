@@ -8,7 +8,7 @@ the system. The public API, the interface for protocols and transports etc.
 
 in your xcode project, run:
 ```bash
-$ git clone https://github.com/reqshark/nanomsg.ios.git
+$ git clone https://github.com/reqshark/nanomsg.ios.git && rm nanomsg.ios/README.md
 ```
 
 then go `add files to project`, selecting the entire `nanomsg.ios` directory.
