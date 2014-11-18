@@ -34,7 +34,10 @@
 //#if defined NN_HAVE_EVENTFD
 //#include "efd_eventfd.h"
 //#if defined NN_HAVE_PIPE
-#include "efd_pipe.h"
+struct nn_efd {
+    int r;
+    int w;
+};
 //#elif defined NN_HAVE_SOCKETPAIR
 //#include "efd_socketpair.h"
 //#else

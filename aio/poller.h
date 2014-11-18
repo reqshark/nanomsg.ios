@@ -34,7 +34,34 @@
 //#elif defined NN_USE_EPOLL
 //#include "poller_epoll.h"
 //#elif defined NN_USE_KQUEUE
-#include "poller_kqueue.h"
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/event.h>
+
+#define NN_POLLER_MAX_EVENTS 32
+
+#define NN_POLLER_EVENT_IN 1
+#define NN_POLLER_EVENT_OUT 2
+
+struct nn_poller_hndl {
+    int fd;
+    int events;
+};
+
+struct nn_poller {
+
+    /*  Current pollset. */
+    int kq;
+
+    /*  Number of events being processed at the moment. */
+    int nevents;
+
+    /*  Index of the event being processed at the moment. */
+    int index;
+
+    /*  Cached events. */
+    struct kevent events [NN_POLLER_MAX_EVENTS];
+};
 //#endif
 
 int nn_poller_init (struct nn_poller *self);
