@@ -13,10 +13,6 @@ $ git clone https://github.com/reqshark/nanomsg.ios.git
 
 then go `add files to project`, selecting the entire `nanomsg.ios` directory.
 
-I will port the nanomsg test suite for osx/ios soon.
-
-Also instead of just adding the header files plus their internal components directly, the future plan here is to script that into a download for versioned snapshots of the nanomsg library. This future script would ideally place such header files and their internal components based on the version of the network library that works for you.
-
 # example
 
 ```c
