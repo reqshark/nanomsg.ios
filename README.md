@@ -56,9 +56,20 @@ int main(int argc, const char * argv[]) {
 }
 ```
 
-please suggest/fork pull-request and submit issues.
+# note about xcode
+I got this warning and others like it:
 
-license inspired by MIT:
+![](https://cldup.com/L7g6pTj1vK-3000x3000.png)
+
+You can fix it at <em><strong>Apple LLVM 6.0 - Warnings - All Languages<strong/></em> section of build settings.
+
+![](https://cldup.com/Z6cXgdHPSI-2000x2000.png)
+
+Click where it says <strong>Uninitialized variables</strong> to switch it from <strong>Yes (Aggressive)</strong> to <strong>No</strong>
+
+![](https://cldup.com/yFyhHrGDce-2000x2000.png)
+
+please suggest/fork pull-request and submit issues. license inspired by MIT.
 
 License
 -------
