@@ -89,14 +89,14 @@ int nn_sock_init (struct nn_sock *self, struct nn_socktype *socktype, int fd)
     if (socktype->flags & NN_SOCKTYPE_FLAG_NOSEND)
         memset (&self->sndfd, 0xcd, sizeof (self->sndfd));
     else {
-        int rc = nn_efd_init (&self->sndfd);
+        rc = nn_efd_init (&self->sndfd);
         if (nn_slow (rc < 0))
             return rc;
     }
     if (socktype->flags & NN_SOCKTYPE_FLAG_NORECV)
         memset (&self->rcvfd, 0xcd, sizeof (self->rcvfd));
     else {
-        int rc = nn_efd_init (&self->rcvfd);
+        rc = nn_efd_init (&self->rcvfd);
         if (nn_slow (rc < 0)) {
             if (!(socktype->flags & NN_SOCKTYPE_FLAG_NOSEND))
                 nn_efd_term (&self->sndfd);

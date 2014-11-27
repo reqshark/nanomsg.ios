@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_USOCK_INCLUDED
-#define NN_USOCK_INCLUDED 1
+#define NN_USOCK_INCLUDED
 
 /*  Import the definition of nn_iovec. */
 #include "../nn.h"

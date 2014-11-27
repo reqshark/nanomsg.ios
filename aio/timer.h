@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_TIMER_INCLUDED
-#define NN_TIMER_INCLUDED 1
+#define NN_TIMER_INCLUDED
 
 #include "fsm.h"
 #include "worker.h"

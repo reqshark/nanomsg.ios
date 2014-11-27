@@ -21,14 +21,14 @@
 */
 
 #ifndef NN_POOL_INCLUDED
-#define NN_POOL_INCLUDED 1
+#define NN_POOL_INCLUDED
 
 #include "worker.h"
 
 /*  Worker thread pool. */
 
 struct nn_pool {
-    struct nn_worker worker;
+  struct nn_worker worker;
 };
 
 int nn_pool_init (struct nn_pool *self);

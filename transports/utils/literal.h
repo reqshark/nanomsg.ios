@@ -23,11 +23,11 @@
 #ifndef NN_LITERAL_INCLUDED
 #define NN_LITERAL_INCLUDED
 
-#if defined NN_HAVE_WINDOWS
-#include "../../utils/win.h"
-#else
+//#if defined NN_HAVE_WINDOWS
+//#include "../../utils/win.h"
+//#else
 #include <sys/socket.h>
-#endif
+//#endif
 
 #include <stddef.h>
 

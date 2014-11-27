@@ -38,7 +38,13 @@ int nn_dns_check_hostname (const char *name, size_t namelen);
 //#if defined NN_HAVE_GETADDRINFO_A
 //#include "dns_getaddrinfo_a.h"
 //#else
-#include "dns_getaddrinfo.h"
+#include <sys/socket.h>
+struct nn_dns {
+  struct nn_fsm fsm;
+  int state;
+  struct nn_dns_result *result;
+  struct nn_fsm_event done;
+};
 //#endif
 
 struct nn_dns_result {

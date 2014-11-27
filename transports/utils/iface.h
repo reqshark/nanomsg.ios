@@ -23,12 +23,7 @@
 #ifndef NN_IFACE_INCLUDED
 #define NN_IFACE_INCLUDED
 
-#if defined NN_HAVE_WINDOWS
-#include "../../utils/win.h"
-#else
 #include <sys/socket.h>
-#endif
-
 #include <stddef.h>
 
 /*  Resolves name of a local network interface into the address itself.

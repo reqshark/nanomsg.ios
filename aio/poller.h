@@ -20,54 +20,46 @@
     IN THE SOFTWARE.
 */
 
-#ifndef NN_POLLER_INCLUDED //1
+
+//the poller_kqueue.h header file & poller_kqueue.inc for iOS/Mac OSX/BSD platforms
+//have been refactored and combined into poller.h & poller.c nanomsg aio sources
+//probably the very trick achieved by good iOS SDK cross-compilation techniques
+
+#include <sys/event.h>
+
+//iOS & OSX macros
 #define NN_POLLER_INCLUDED
-
-//#if !defined NN_HAVE_WINDOWS
-
 #define NN_POLLER_IN 1
 #define NN_POLLER_OUT 2
 #define NN_POLLER_ERR 3
-
-//#if defined NN_USE_POLL
-//#include "poller_poll.h"
-//#elif defined NN_USE_EPOLL
-//#include "poller_epoll.h"
-//#elif defined NN_USE_KQUEUE
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/event.h>
-
-#define NN_POLLER_MAX_EVENTS 32
-
 #define NN_POLLER_EVENT_IN 1
 #define NN_POLLER_EVENT_OUT 2
+#define NN_POLLER_MAX_EVENTS 32
 
 struct nn_poller_hndl {
-    int fd;
-    int events;
+  int fd;
+  int events;
 };
 
 struct nn_poller {
 
-    /*  Current pollset. */
-    int kq;
+  /*  Current pollset. */
+  int kq;
 
-    /*  Number of events being processed at the moment. */
-    int nevents;
+  /*  Number of events being processed at the moment. */
+  int nevents;
 
-    /*  Index of the event being processed at the moment. */
-    int index;
+  /*  Index of the event being processed at the moment. */
+  int index;
 
-    /*  Cached events. */
-    struct kevent events [NN_POLLER_MAX_EVENTS];
+  /*  Cached events. */
+  struct kevent events [NN_POLLER_MAX_EVENTS];
 };
-//#endif
 
 int nn_poller_init (struct nn_poller *self);
 void nn_poller_term (struct nn_poller *self);
 void nn_poller_add (struct nn_poller *self, int fd,
-    struct nn_poller_hndl *hndl);
+                    struct nn_poller_hndl *hndl);
 void nn_poller_rm (struct nn_poller *self, struct nn_poller_hndl *hndl);
 void nn_poller_set_in (struct nn_poller *self, struct nn_poller_hndl *hndl);
 void nn_poller_reset_in (struct nn_poller *self, struct nn_poller_hndl *hndl);
@@ -75,9 +67,4 @@ void nn_poller_set_out (struct nn_poller *self, struct nn_poller_hndl *hndl);
 void nn_poller_reset_out (struct nn_poller *self, struct nn_poller_hndl *hndl);
 int nn_poller_wait (struct nn_poller *self, int timeout);
 int nn_poller_event (struct nn_poller *self, int *event,
-    struct nn_poller_hndl **hndl);
-
-//#endif
-
-#endif
-
+                     struct nn_poller_hndl **hndl);

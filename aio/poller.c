@@ -21,25 +21,27 @@
 */
 
 #include "poller.h"
+#include "fast.h"
+#include "err.h"
+#include "closefd.h"
 
-//#if !defined NN_HAVE_WINDOWS
-
-//#if defined NN_USE_POLL
-//#include "poller_poll.inc"
-//#elif defined NN_USE_EPOLL
-//#include "poller_epoll.inc"
-//#elif defined NN_USE_KQUEUE
-#include "../utils/fast.h"
-#include "../utils/err.h"
-#include "../utils/closefd.h"
-
+//the poller_kqueue.h header file & poller_kqueue.inc for iOS/Mac OSX/BSD platforms
+//have been refactored and combined into poller.h & poller.c nanomsg aio sources
+//probably the very trick achieved by good iOS SDK cross-compilation techniques
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/event.h>
 #include <unistd.h>
 
-/*  NetBSD has different definition of udata. */
+/*  NetBSD has different definition of udata.
+ *  side-note: on Apple, we can go with either definition of udata.
+ *  changing these types won't make a difference for Apple architectures.
+*/
 //#if defined NN_HAVE_NETBSD
-//#define nn_poller_udata intptr_t
+#define nn_poller_udata intptr_t
 //#else
-#define nn_poller_udata void*
+//or alternatively try
+//#define nn_poller_udata void*
 //#endif
 
 int nn_poller_init (struct nn_poller *self)
