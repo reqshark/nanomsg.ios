@@ -431,7 +431,9 @@ void *nn_reallocmsg (void *msg, size_t size)
 
 int nn_freemsg (void *msg)
 {
+    if (msg != NULL) {
     nn_chunk_free (msg);
+    } 
     return 0;
 }
 
