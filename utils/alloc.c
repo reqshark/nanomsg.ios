@@ -131,7 +131,7 @@ void nn_alloc_term (void)
 
 void *nn_alloc_ (size_t size)
 {
-    return malloc (size);
+    return calloc (size, sizeof(size_t));
 }
 
 void *nn_realloc (void *ptr, size_t size)
