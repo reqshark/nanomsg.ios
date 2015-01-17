@@ -56,7 +56,7 @@ void *nn_alloc_ (size_t size, const char *name)
 {
     uint8_t *chunk;
 
-    chunk = malloc (sizeof (struct nn_alloc_hdr) + size);
+    chunk = calloc (sizeof (struct nn_alloc_hdr) + size, sizeof(size_t));
     if (!chunk)
         return NULL;
 
