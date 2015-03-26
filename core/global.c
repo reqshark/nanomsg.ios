@@ -431,9 +431,7 @@ void *nn_reallocmsg (void *msg, size_t size)
 
 int nn_freemsg (void *msg)
 {
-    if (msg != NULL) {
     nn_chunk_free (msg);
-    } 
     return 0;
 }
 
@@ -469,7 +467,7 @@ struct nn_cmsghdr *nn_cmsg_nxthdr_ (const struct nn_msghdr *mhdr,
     if (headsz + sizeof (struct nn_cmsghdr) > sz ||
           headsz + NN_CMSG_SPACE (next->cmsg_len) > sz)
         return NULL;
-    
+
     /*  Success. */
     return next;
 }
