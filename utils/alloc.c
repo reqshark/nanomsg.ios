@@ -56,7 +56,7 @@ void *nn_alloc_ (size_t size, const char *name)
 {
     uint8_t *chunk;
 
-    chunk = calloc (sizeof (struct nn_alloc_hdr) + size, sizeof(uint8_t));
+    chunk = malloc (sizeof (struct nn_alloc_hdr) + size);
     if (!chunk)
         return NULL;
 
@@ -131,7 +131,7 @@ void nn_alloc_term (void)
 
 void *nn_alloc_ (size_t size)
 {
-    return calloc (size, sizeof(uint8_t));
+    return malloc (size);
 }
 
 void *nn_realloc (void *ptr, size_t size)
