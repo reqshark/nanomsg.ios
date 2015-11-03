@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_EFD_INCLUDED
-#define NN_EFD_INCLUDED 1
+#define NN_EFD_INCLUDED
 
 /*  Provides a way to send signals via file descriptors. The important part
     is that nn_efd_getfd() returns an actual OS-level file descriptor that
@@ -31,13 +31,14 @@
 
 //#if defined NN_HAVE_WINDOWS
 //#include "efd_win.h"
-//#if defined NN_HAVE_EVENTFD
+//#elif defined NN_HAVE_EVENTFD
 //#include "efd_eventfd.h"
-//#if defined NN_HAVE_PIPE
+//#elif defined NN_HAVE_PIPE
 struct nn_efd {
     int r;
     int w;
 };
+//#include "efd_pipe.h"
 //#elif defined NN_HAVE_SOCKETPAIR
 //#include "efd_socketpair.h"
 //#else
@@ -66,4 +67,3 @@ void nn_efd_unsignal (struct nn_efd *self);
 int nn_efd_wait (struct nn_efd *self, int timeout);
 
 #endif
-

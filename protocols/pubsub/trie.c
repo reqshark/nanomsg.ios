@@ -540,7 +540,7 @@ static int nn_node_unsubscribe (struct nn_trie_node **self,
         *self = nn_realloc (*self, sizeof (struct nn_trie_node) +
             ((*self)->type * sizeof (struct nn_trie_node*)));
         assert (*self);
-
+        
         /*  If there are no more children and no refcount, we can delete
             the node altogether. */
         if (!(*self)->type && !nn_node_has_subscribers (*self)) {

@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_SOCK_INCLUDED
-#define NN_SOCK_INCLUDED 1
+#define NN_SOCK_INCLUDED
 
 #include "../protocol.h"
 #include "../transport.h"
@@ -37,7 +37,7 @@
 struct nn_pipe;
 
 /*  The maximum implemented transport ID. */
-#define NN_MAX_TRANSPORT 3
+#define NN_MAX_TRANSPORT 4
 
 /*  The socket-internal statistics  */
 #define NN_STAT_MESSAGES_SENT          301
@@ -82,6 +82,7 @@ struct nn_sock
     int linger;
     int sndbuf;
     int rcvbuf;
+    int rcvmaxsize;
     int sndtimeo;
     int rcvtimeo;
     int reconnect_ivl;

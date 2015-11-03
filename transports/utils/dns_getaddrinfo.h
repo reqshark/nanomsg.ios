@@ -20,7 +20,11 @@
     IN THE SOFTWARE.
 */
 
+#if defined NN_HAVE_WINDOWS
+#include "../../utils/win.h"
+#else
 #include <sys/socket.h>
+#endif
 
 struct nn_dns {
     struct nn_fsm fsm;

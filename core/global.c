@@ -46,6 +46,8 @@
 #include "../transports/inproc/inproc.h"
 #include "../transports/ipc/ipc.h"
 #include "../transports/tcp/tcp.h"
+#include "../transports/ws/ws.h"
+#include "../transports/tcpmux/tcpmux.h"
 
 #include "../protocols/pair/pair.h"
 #include "../protocols/pair/xpair.h"
@@ -99,8 +101,13 @@
 CT_ASSERT (NN_MAX_SOCKETS <= 0x10000);
 
 /*  This check is performed at the beginning of each socket operation to make
-    sure that the library was initialised and the socket actually exists. */
+    sure that the library was initialised, the socket actually exists, and is
+    a valid socket index. */
 #define NN_BASIC_CHECKS \
+    if (nn_slow (s < 0 || s > NN_MAX_SOCKETS)) {\
+        errno = EBADF;\
+        return -1;\
+        }\
     if (nn_slow (!self.socks || !self.socks [s])) {\
         errno = EBADF;\
         return -1;\
@@ -158,7 +165,7 @@ struct nn_global {
 };
 
 /*  Singleton object containing the global state of the library. */
-static struct nn_global self = {0};
+static struct nn_global self;
 
 /*  Context creation- and termination-related private functions. */
 static void nn_global_init (void);
@@ -254,6 +261,8 @@ static void nn_global_init (void)
     nn_global_add_transport (nn_inproc);
     nn_global_add_transport (nn_ipc);
     nn_global_add_transport (nn_tcp);
+    nn_global_add_transport (nn_ws);
+    nn_global_add_transport (nn_tcpmux);
 
     /*  Plug in individual socktypes. */
     nn_global_add_socktype (nn_pair_socktype);
@@ -287,7 +296,6 @@ static void nn_global_init (void)
 
     nn_ctx_init (&self.ctx, nn_global_getpool (), NULL);
     nn_timer_init (&self.stat_timer, NN_GLOBAL_SRC_STAT_TIMER, &self.fsm);
-    nn_fsm_start (&self.fsm);
 
     /*   Initializing special sockets.  */
     addr = getenv ("NN_STATISTICS_SOCKET");
@@ -329,6 +337,8 @@ static void nn_global_init (void)
         errno_assert (rc == 0);
         self.hostname[63] = '\0';
     }
+
+    nn_fsm_start(&self.fsm);
 }
 
 static void nn_global_term (void)
@@ -443,6 +453,10 @@ struct nn_cmsghdr *nn_cmsg_nxthdr_ (const struct nn_msghdr *mhdr,
     struct nn_cmsghdr *next;
     size_t headsz;
 
+    /*  Early return if no message is provided. */
+    if (nn_slow (mhdr == NULL))
+        return NULL;
+
     /*  Get the actual data. */
     if (mhdr->msg_controllen == NN_MSG) {
         data = *((void**) mhdr->msg_control);
@@ -453,21 +467,25 @@ struct nn_cmsghdr *nn_cmsg_nxthdr_ (const struct nn_msghdr *mhdr,
         sz = mhdr->msg_controllen;
     }
 
+    /*  Ancillary data allocation was not even large enough for one element. */
+    if (nn_slow (sz < NN_CMSG_SPACE (0)))
+        return NULL;
+
     /*  If cmsg is set to NULL we are going to return first property.
         Otherwise move to the next property. */
     if (!cmsg)
         next = (struct nn_cmsghdr*) data;
     else
         next = (struct nn_cmsghdr*)
-            (((char*) cmsg) + NN_CMSG_SPACE (cmsg->cmsg_len));
+            (((char*) cmsg) + NN_CMSG_ALIGN_ (cmsg->cmsg_len));
 
     /*  If there's no space for next property, treat it as the end
         of the property list. */
     headsz = ((char*) next) - data;
-    if (headsz + sizeof (struct nn_cmsghdr) > sz ||
-          headsz + NN_CMSG_SPACE (next->cmsg_len) > sz)
+    if (headsz + NN_CMSG_SPACE (0) > sz ||
+          headsz + NN_CMSG_ALIGN_ (next->cmsg_len) > sz)
         return NULL;
-
+    
     /*  Success. */
     return next;
 }
@@ -711,6 +729,7 @@ int nn_sendmsg (int s, const struct nn_msghdr *msghdr, int flags)
 {
     int rc;
     size_t sz;
+    size_t spsz;
     int i;
     struct nn_iovec *iov;
     struct nn_msg msg;
@@ -777,45 +796,33 @@ int nn_sendmsg (int s, const struct nn_msghdr *msghdr, int flags)
     /*  Add ancillary data to the message. */
     if (msghdr->msg_control) {
 
-        /* Find SP_HDR property. */
-        cmsg = NN_CMSG_FIRSTHDR (msghdr);
-        while (1) {
-            if (!cmsg)
-                return -1;
-            if (cmsg->cmsg_level == PROTO_SP && cmsg->cmsg_type == SP_HDR)
-                break;
-            cmsg = NN_CMSG_NXTHDR (msghdr, cmsg);
-        }
-
-        if (!cmsg) {
-
-            /* If there is no SP_HDR property we'll just use the ancillary
-               data with no modification */
-            if (msghdr->msg_controllen == NN_MSG) {
-                chunk = *((void**) msghdr->msg_control);
-                nn_chunkref_term (&msg.hdrs);
-                nn_chunkref_init_chunk (&msg.hdrs, chunk);
-            }
-            else {
-                nn_chunkref_term (&msg.hdrs);
-                nn_chunkref_init (&msg.hdrs, msghdr->msg_controllen);
-                memcpy (nn_chunkref_data (&msg.hdrs),
-                    msghdr->msg_control, msghdr->msg_controllen);
-            }
+        /*  Copy all headers. */
+        /*  TODO: SP_HDR should not be copied here! */
+        if (msghdr->msg_controllen == NN_MSG) {
+            chunk = *((void**) msghdr->msg_control);
+            nn_chunkref_term (&msg.hdrs);
+            nn_chunkref_init_chunk (&msg.hdrs, chunk);
         }
         else {
+            nn_chunkref_term (&msg.hdrs);
+            nn_chunkref_init (&msg.hdrs, msghdr->msg_controllen);
+            memcpy (nn_chunkref_data (&msg.hdrs),
+                msghdr->msg_control, msghdr->msg_controllen);
+        }
 
-            /*  Copy body of SP_HDR property into 'sphdr'. */
-            nn_chunkref_term (&msg.sphdr);
-            nn_chunkref_init (&msg.sphdr, cmsg->cmsg_len);
-            memcpy (nn_chunkref_data (&msg.sphdr),
-                NN_CMSG_DATA (cmsg), cmsg->cmsg_len);
-
-            /* TODO: Copy all remaining properties into 'hdrs'. */
-
-            /* Clean-up, if needed. */
-            if (msghdr->msg_controllen == NN_MSG)
-                nn_freemsg (*((void**) msghdr->msg_control));
+        /* Search for SP_HDR property. */
+        cmsg = NN_CMSG_FIRSTHDR (msghdr);
+        while (cmsg) {
+            if (cmsg->cmsg_level == PROTO_SP && cmsg->cmsg_type == SP_HDR) {
+                /*  Copy body of SP_HDR property into 'sphdr'. */
+                nn_chunkref_term (&msg.sphdr);
+                spsz = cmsg->cmsg_len - NN_CMSG_SPACE (0);
+                nn_chunkref_init (&msg.sphdr, spsz);
+                memcpy (nn_chunkref_data (&msg.sphdr),
+                    NN_CMSG_DATA (cmsg), spsz);
+                break;
+            }
+            cmsg = NN_CMSG_NXTHDR (msghdr, cmsg);
         }
     }
 
@@ -932,7 +939,7 @@ int nn_recvmsg (int s, struct nn_msghdr *msghdr, int flags)
 
             /*  Fill in SP_HDR ancillary property. */
             chdr = (struct nn_cmsghdr*) ctrl;
-            chdr->cmsg_len = spsz;
+            chdr->cmsg_len = sptotalsz;
             chdr->cmsg_level = PROTO_SP;
             chdr->cmsg_type = SP_HDR;
             memcpy (chdr + 1, nn_chunkref_data (&msg.sphdr), spsz);
@@ -948,6 +955,10 @@ int nn_recvmsg (int s, struct nn_msghdr *msghdr, int flags)
     }
 
     nn_msg_term (&msg);
+
+    /*  Adjust the statistics. */
+    nn_sock_stat_increment (self.socks [s], NN_STAT_MESSAGES_RECEIVED, 1);
+    nn_sock_stat_increment (self.socks [s], NN_STAT_BYTES_RECEIVED, sz);
 
     return (int) sz;
 }
@@ -1113,17 +1124,27 @@ static void nn_global_submit_errors (int i, struct nn_sock *s,
     }
 }
 
-static void nn_global_submit_statistics () {
+static void nn_global_submit_statistics ()
+{
     int i;
+    struct nn_sock *s;
 
     /*  TODO(tailhook)  optimized it to use nsocks and unused  */
     for(i = 0; i < NN_MAX_SOCKETS; ++i) {
-        struct nn_sock *s = self.socks [i];
-        if (!s)
+
+        nn_glock_lock ();
+        s = self.socks [i];
+        if (!s) {
+            nn_glock_unlock ();
             continue;
-        if (i == self.statistics_socket)
+        }
+        if (i == self.statistics_socket) {
+            nn_glock_unlock ();
             continue;
+        }
         nn_ctx_enter (&s->ctx);
+        nn_glock_unlock ();
+
         nn_global_submit_counter (i, s,
             "established_connections", s->statistics.established_connections);
         nn_global_submit_counter (i, s,

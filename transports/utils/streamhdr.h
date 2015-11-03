@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_STREAMHDR_INCLUDED
-#define NN_STREAMHDR_INCLUDED 1
+#define NN_STREAMHDR_INCLUDED
 
 #include "../../transport.h"
 

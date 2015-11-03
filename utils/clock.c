@@ -21,15 +21,15 @@
     IN THE SOFTWARE.
 */
 
-//#if defined NN_HAVE_WINDOWS
-//#include "win.h"
-//#elif defined NN_HAVE_OSX
+#if defined NN_HAVE_WINDOWS
+#include "win.h"
+#elif defined NN_HAVE_OSX
 #include <mach/mach_time.h>
-//#elif defined NN_HAVE_CLOCK_MONOTONIC || defined NN_HAVE_GETHRTIME
-//#include <time.h>
-//#else
+#elif defined NN_HAVE_CLOCK_MONOTONIC || defined NN_HAVE_GETHRTIME
+#include <time.h>
+#else
 #include <sys/time.h>
-//#endif
+#endif
 
 #include "clock.h"
 #include "fast.h"
@@ -40,9 +40,9 @@
    it works pretty well for CPU frequencies above 500MHz. */
 #define NN_CLOCK_PRECISION 1000000
 
-//#if defined NN_HAVE_OSX
-static mach_timebase_info_data_t nn_clock_timebase_info = {0};
-//#endif
+#if defined NN_HAVE_OSX
+static mach_timebase_info_data_t nn_clock_timebase_info;
+#endif
 
 static uint64_t nn_clock_rdtsc ()
 {
@@ -70,18 +70,18 @@ static uint64_t nn_clock_rdtsc ()
 
 static uint64_t nn_clock_time ()
 {
-//#if defined NN_HAVE_WINDOWS
+#if defined NN_HAVE_WINDOWS
 
-//    LARGE_INTEGER tps;
-//    LARGE_INTEGER time;
-//    double tpms;
+    LARGE_INTEGER tps;
+    LARGE_INTEGER time;
+    double tpms;
 
-//    QueryPerformanceFrequency (&tps);
-//    QueryPerformanceCounter (&time);
-//    tpms = (double) (tps.QuadPart / 1000);
-//    return (uint64_t) (time.QuadPart / tpms);
+    QueryPerformanceFrequency (&tps);
+    QueryPerformanceCounter (&time);
+    tpms = (double) (tps.QuadPart / 1000);
+    return (uint64_t) (time.QuadPart / tpms);
 
-//#elif defined NN_HAVE_OSX
+#elif defined NN_HAVE_OSX
 
     uint64_t ticks;
 
@@ -93,31 +93,31 @@ static uint64_t nn_clock_time ()
     return ticks * nn_clock_timebase_info.numer /
         nn_clock_timebase_info.denom / 1000000;
 
-//#elif defined NN_HAVE_CLOCK_MONOTONIC
+#elif defined NN_HAVE_CLOCK_MONOTONIC
 
-//    int rc;
-//    struct timespec tv;
+    int rc;
+    struct timespec tv;
 
-//    rc = clock_gettime (CLOCK_MONOTONIC, &tv);
-//    errno_assert (rc == 0);
-//    return tv.tv_sec * (uint64_t) 1000 + tv.tv_nsec / 1000000;
+    rc = clock_gettime (CLOCK_MONOTONIC, &tv);
+    errno_assert (rc == 0);
+    return tv.tv_sec * (uint64_t) 1000 + tv.tv_nsec / 1000000;
 
-//#elif defined NN_HAVE_GETHRTIME
+#elif defined NN_HAVE_GETHRTIME
 
-//    return gethrtime () / 1000000;
+    return gethrtime () / 1000000;
 
-//#else
+#else
 
-//    int rc;
-//    struct timeval tv;
+    int rc;
+    struct timeval tv;
 
     /*  Gettimeofday is slow on some systems. Moreover, it's not necessarily
         monotonic. Thus, it's used as a last resort mechanism. */
-//    rc = gettimeofday (&tv, NULL);
-//    errno_assert (rc == 0);
-//    return tv.tv_sec * (uint64_t) 1000 + tv.tv_usec / 1000;
+    rc = gettimeofday (&tv, NULL);
+    errno_assert (rc == 0);
+    return tv.tv_sec * (uint64_t) 1000 + tv.tv_usec / 1000;
 
-//#endif
+#endif
 }
 
 void nn_clock_init (struct nn_clock *self)

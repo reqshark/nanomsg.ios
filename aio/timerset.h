@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_TIMERSET_INCLUDED
-#define NN_TIMERSET_INCLUDED 1
+#define NN_TIMERSET_INCLUDED
 
 #include "../utils/clock.h"
 #include "../utils/list.h"

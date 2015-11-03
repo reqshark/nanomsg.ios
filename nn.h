@@ -1,6 +1,7 @@
 /*
     Copyright (c) 2012-2014 Martin Sustrik  All rights reserved.
     Copyright (c) 2013 GoPivotal, Inc.  All rights reserved.
+    Copyright 2015 Garrett D'Amore <garrett@damore.org>
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"),
@@ -20,7 +21,6 @@
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
     IN THE SOFTWARE.
 */
-
 
 #ifndef NN_H_INCLUDED
 #define NN_H_INCLUDED
@@ -64,13 +64,13 @@ extern "C" {
 /*  www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html  */
 
 /*  The current interface version. */
-#define NN_VERSION_CURRENT 2
+#define NN_VERSION_CURRENT 3
 
 /*  The latest revision of the current interface. */
-#define NN_VERSION_REVISION 1
+#define NN_VERSION_REVISION 0
 
 /*  How many past interface versions are still supported. */
-#define NN_VERSION_AGE 2
+#define NN_VERSION_AGE 0
 
 /******************************************************************************/
 /*  Errors.                                                                   */
@@ -207,6 +207,7 @@ NN_EXPORT const char *nn_symbol (int i, int *value);
 #define NN_NS_FLAG 10
 #define NN_NS_ERROR 11
 #define NN_NS_LIMIT 12
+#define NN_NS_EVENT 13
 
 /*  Constants that are returned in `type` member of nn_symbol_properties      */
 #define NN_TYPE_NONE 0
@@ -336,6 +337,7 @@ NN_EXPORT  struct nn_cmsghdr *nn_cmsg_nxthdr_ (
 #define NN_PROTOCOL 13
 #define NN_IPV4ONLY 14
 #define NN_SOCKET_NAME 15
+#define NN_RCVMAXSIZE 16
 
 /*  Send/recv options.                                                        */
 #define NN_DONTWAIT 1
@@ -378,6 +380,12 @@ NN_EXPORT int nn_poll (struct nn_pollfd *fds, int nfds, int timeout);
 /******************************************************************************/
 
 NN_EXPORT int nn_device (int s1, int s2);
+
+/******************************************************************************/
+/*  Built-in support for multiplexers.                                        */
+/******************************************************************************/
+
+NN_EXPORT int nn_tcpmuxd (int port);
 
 #ifdef __cplusplus
 }

@@ -35,13 +35,13 @@
 #include "../../utils/fast.h"
 
 #include <string.h>
-//#if defined NN_HAVE_WINDOWS
-//#include "../../utils/win.h"
-//#else
+#if defined NN_HAVE_WINDOWS
+#include "../../utils/win.h"
+#else
 #include <unistd.h>
 #include <sys/un.h>
 #include <fcntl.h>
-//#endif
+#endif
 
 #define NN_BIPC_BACKLOG 10
 
@@ -194,7 +194,8 @@ static void nn_bipc_shutdown (struct nn_fsm *self, int src, int type,
         bipc->state = NN_BIPC_STATE_STOPPING_USOCK;
     }
     if (nn_slow (bipc->state == NN_BIPC_STATE_STOPPING_USOCK)) {
-       if (!nn_usock_isidle (&bipc->usock))
+       if (!nn_usock_isidle (&bipc->usock) ||
+           !nn_backoff_isidle (&bipc->retry))
             return;
         for (it = nn_list_begin (&bipc->aipcs);
               it != nn_list_end (&bipc->aipcs);
@@ -382,10 +383,9 @@ static void nn_bipc_start_listening (struct nn_bipc *self)
     struct sockaddr_storage ss;
     struct sockaddr_un *un;
     const char *addr;
-//#if !defined NN_HAVE_WINDOWS
+#if !defined NN_HAVE_WINDOWS
     int fd;
-//    int opt ;
-//#endif
+#endif
 
     /*  First, create the AF_UNIX address. */
     addr = nn_epbase_getaddr (&self->epbase);

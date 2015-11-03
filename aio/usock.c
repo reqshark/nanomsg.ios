@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/uio.h>
+#include <sys/socket.h>
 
 #define NN_USOCK_STATE_IDLE 1
 #define NN_USOCK_STATE_STARTING 2
@@ -57,6 +58,7 @@
 #define NN_USOCK_ACTION_ACTIVATE 6
 #define NN_USOCK_ACTION_DONE 7
 #define NN_USOCK_ACTION_ERROR 8
+#define NN_USOCK_ACTION_STARTED 9
 
 #define NN_USOCK_SRC_FD 1
 #define NN_USOCK_SRC_TASK_CONNECTING 2
@@ -95,6 +97,7 @@ void nn_usock_init (struct nn_usock *self, int src, struct nn_fsm *owner)
     self->in.batch = NULL;
     self->in.batch_len = 0;
     self->in.batch_pos = 0;
+    self->in.pfd = NULL;
 
     memset (&self->out.hdr, 0, sizeof (struct msghdr));
 
@@ -173,6 +176,13 @@ int nn_usock_start (struct nn_usock *self, int domain, int type, int protocol)
     return 0;
 }
 
+void nn_usock_start_fd (struct nn_usock *self, int fd)
+{
+    nn_usock_init_from_fd (self, fd);
+    nn_fsm_start (&self->fsm);
+    nn_fsm_action (&self->fsm, NN_USOCK_ACTION_STARTED);
+}
+
 static void nn_usock_init_from_fd (struct nn_usock *self, int s)
 {
     int rc;
@@ -191,11 +201,11 @@ static void nn_usock_init_from_fd (struct nn_usock *self, int s)
         the option) but the problem is pretty unlikely to happen. */
 #if defined FD_CLOEXEC
     rc = fcntl (self->s, F_SETFD, FD_CLOEXEC);
-//#if defined NN_HAVE_OSX
+#if defined NN_HAVE_OSX
     errno_assert (rc != -1 || errno == EINVAL);
-//#else
-//    errno_assert (rc != -1);
-//#endif
+#else
+    errno_assert (rc != -1);
+#endif
 #endif
 
     /* If applicable, prevent SIGPIPE signal when writing to the connection
@@ -203,11 +213,11 @@ static void nn_usock_init_from_fd (struct nn_usock *self, int s)
 #ifdef SO_NOSIGPIPE
     opt = 1;
     rc = setsockopt (self->s, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof (opt));
-//#if defined NN_HAVE_OSX
+#if defined NN_HAVE_OSX
     errno_assert (rc == 0 || errno == EINVAL);
-//#else
-//    errno_assert (rc == 0);
-//#endif
+#else
+    errno_assert (rc == 0);
+#endif
 #endif
 
     /* Switch the socket to the non-blocking mode. All underlying sockets
@@ -217,11 +227,11 @@ static void nn_usock_init_from_fd (struct nn_usock *self, int s)
         opt = 0;
     if (!(opt & O_NONBLOCK)) {
         rc = fcntl (self->s, F_SETFL, opt | O_NONBLOCK);
-//#if defined NN_HAVE_OSX
+#if defined NN_HAVE_OSX
         errno_assert (rc != -1 || errno == EINVAL);
-//#else
-//        errno_assert (rc != -1);
-//#endif
+#else
+        errno_assert (rc != -1);
+#endif
     }
 }
 
@@ -256,13 +266,13 @@ int nn_usock_setsockopt (struct nn_usock *self, int level, int optname,
         the option value was invalid, but the peer have already closed the
         connection. This behaviour should be relatively harmless. */
     rc = setsockopt (self->s, level, optname, optval, (socklen_t) optlen);
-//#if defined NN_HAVE_OSX
+#if defined NN_HAVE_OSX
     if (nn_slow (rc != 0 && errno != EINVAL))
         return -errno;
-//#else
-//    if (nn_slow (rc != 0))
-//        return -errno;
-//#endif
+#else
+    if (nn_slow (rc != 0))
+        return -errno;
+#endif
 
     return 0;
 }
@@ -443,7 +453,7 @@ void nn_usock_send (struct nn_usock *self, const struct nn_iovec *iov,
     nn_worker_execute (self->worker, &self->task_send);
 }
 
-void nn_usock_recv (struct nn_usock *self, void *buf, size_t len)
+void nn_usock_recv (struct nn_usock *self, void *buf, size_t len, int *fd)
 {
     int rc;
     size_t nbytes;
@@ -453,6 +463,7 @@ void nn_usock_recv (struct nn_usock *self, void *buf, size_t len)
 
     /*  Try to receive the data immediately. */
     nbytes = len;
+    self->in.pfd = fd;
     rc = nn_usock_recv_raw (self, buf, &nbytes);
     if (nn_slow (rc < 0)) {
         errnum_assert (rc == -ECONNRESET, -rc);
@@ -629,6 +640,10 @@ static void nn_usock_handler (struct nn_fsm *self, int src, int type,
                 return;
             case NN_USOCK_ACTION_BEING_ACCEPTED:
                 usock->state = NN_USOCK_STATE_BEING_ACCEPTED;
+                return;
+            case NN_USOCK_ACTION_STARTED:
+                nn_worker_add_fd (usock->worker, usock->s, &usock->wfd);
+                usock->state = NN_USOCK_STATE_ACTIVE;
                 return;
             default:
                 nn_fsm_bad_action (usock->state, src, type);
@@ -1005,8 +1020,6 @@ static int nn_usock_send_raw (struct nn_usock *self, struct msghdr *hdr)
         else {
 
             /*  If the connection fails, return ECONNRESET. */
-            errno_assert (errno == ECONNRESET || errno == ETIMEDOUT ||
-                errno == EPIPE ||  errno == ECONNREFUSED || errno == ENOTCONN);
             return -ECONNRESET;
         }
     }
@@ -1040,6 +1053,12 @@ static int nn_usock_recv_raw (struct nn_usock *self, void *buf, size_t *len)
     size_t sz;
     size_t length;
     ssize_t nbytes;
+    struct iovec iov;
+    struct msghdr hdr;
+    unsigned char ctrl [256];
+//#if defined NN_HAVE_MSG_CONTROL
+    struct cmsghdr *cmsg;
+//#endif
 
     /*  If batch buffer doesn't exist, allocate it. The point of delayed
         deallocation to allow non-receiving sockets, such as TCP listening
@@ -1065,10 +1084,26 @@ static int nn_usock_recv_raw (struct nn_usock *self, void *buf, size_t *len)
 
     /*  If recv request is greater than the batch buffer, get the data directly
         into the place. Otherwise, read data to the batch buffer. */
-    if (length > NN_USOCK_BATCH_SIZE)
-        nbytes = recv (self->s, buf, length, 0);
-    else
-        nbytes = recv (self->s, self->in.batch, NN_USOCK_BATCH_SIZE, 0);
+    if (length > NN_USOCK_BATCH_SIZE) {
+        iov.iov_base = buf;
+        iov.iov_len = length;
+    }
+    else {
+        iov.iov_base = self->in.batch;
+        iov.iov_len = NN_USOCK_BATCH_SIZE;
+    }
+    memset (&hdr, 0, sizeof (hdr));
+    hdr.msg_iov = &iov;
+    hdr.msg_iovlen = 1;
+//#if defined NN_HAVE_MSG_CONTROL
+    hdr.msg_control = ctrl;
+    hdr.msg_controllen = sizeof (ctrl);
+//#else
+//    *((int*) ctrl) = -1;
+//    hdr.msg_accrights = ctrl;
+//    hdr.msg_accrightslen = sizeof (int);
+//#endif
+    nbytes = recvmsg (self->s, &hdr, 0);
 
     /*  Handle any possible errors. */
     if (nn_slow (nbytes <= 0)) {
@@ -1082,11 +1117,39 @@ static int nn_usock_recv_raw (struct nn_usock *self, void *buf, size_t *len)
         else {
 
             /*  If the peer closes the connection, return ECONNRESET. */
-            errno_assert (errno == ECONNRESET || errno == ENOTCONN ||
-                errno == ECONNREFUSED || errno == ETIMEDOUT ||
-                errno == EHOSTUNREACH);
             return -ECONNRESET;
         }
+    }
+
+    /*  Extract the associated file descriptor, if any. */
+    if (nbytes > 0) {
+//#if defined NN_HAVE_MSG_CONTROL
+        cmsg = CMSG_FIRSTHDR (&hdr);
+        while (cmsg) {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+                if (self->in.pfd) {
+                    *self->in.pfd = *((int*) CMSG_DATA (cmsg));
+                    self->in.pfd = NULL;
+                }
+                else {
+                    nn_closefd (*((int*) CMSG_DATA (cmsg)));
+                }
+                break;
+            }
+            cmsg = CMSG_NXTHDR (&hdr, cmsg);
+        }
+#//else
+//        if (hdr.msg_accrightslen > 0) {
+//            nn_assert (hdr.msg_accrightslen == sizeof (int));
+//            if (self->in.pfd) {
+//                *self->in.pfd = *((int*) hdr.msg_accrights);
+//                self->in.pfd = NULL;
+//            }
+//            else {
+//                nn_closefd (*((int*) hdr.msg_accrights));
+//            }
+//        }
+//#endif
     }
 
     /*  If the data were received directly into the place we can return

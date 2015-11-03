@@ -1,5 +1,5 @@
 # nanomsg.ios
-### ios/osx port of the [0.5 beta release](https://github.com/nanomsg/nanomsg/releases/tag/0.5-beta)
+### ios/osx port of the [0.7 beta release](https://github.com/nanomsg/nanomsg/releases/tag/0.7-beta)
 
 This directory contains all headers that interconnect various parts of
 the system. The public API, the interface for protocols and transports etc.
@@ -8,10 +8,13 @@ the system. The public API, the interface for protocols and transports etc.
 
 in your xcode project, run:
 ```bash
-$ git clone https://github.com/reqshark/nanomsg.ios.git && rm nanomsg.ios/README.md
+$ git clone https://github.com/reqshark/nanomsg.ios && rm nanomsg.ios/README.md
 ```
 
-then go `add files to project`, selecting the entire `nanomsg.ios` directory.
+then go `add files to project`, selecting the entire `nanomsg.ios` directory,
+and make sure to create groups (not folder references).
+
+*note: in Xcode 7, click options (next to new folder) to choose 'Create groups'*
 
 # example
 
@@ -24,7 +27,7 @@ then go `add files to project`, selecting the entire `nanomsg.ios` directory.
 #include "pipeline.h"
 #include "sleep.h"
 
-/*  Tests a nanomsg pipe over TCP transport. */
+/* test a nanomsg pub/sub over TCP transport. */
 
 #define SOCKET_ADDRESS "tcp://127.0.0.1:5555"
 

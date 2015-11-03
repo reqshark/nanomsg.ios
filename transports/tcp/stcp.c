@@ -165,7 +165,7 @@ static int nn_stcp_recv (struct nn_pipebase *self, struct nn_msg *msg)
 
     /*  Start receiving new message. */
     stcp->instate = NN_STCP_INSTATE_HDR;
-    nn_usock_recv (stcp->usock, stcp->inhdr, sizeof (stcp->inhdr));
+    nn_usock_recv (stcp->usock, stcp->inhdr, sizeof (stcp->inhdr), NULL);
 
     return 0;
 }
@@ -204,6 +204,8 @@ static void nn_stcp_handler (struct nn_fsm *self, int src, int type,
     int rc;
     struct nn_stcp *stcp;
     uint64_t size;
+    int opt;
+    size_t opt_sz = sizeof (opt);
 
     stcp = nn_cont (self, struct nn_stcp, fsm);
 
@@ -283,7 +285,7 @@ static void nn_stcp_handler (struct nn_fsm *self, int src, int type,
                  /*  Start receiving a message in asynchronous manner. */
                  stcp->instate = NN_STCP_INSTATE_HDR;
                  nn_usock_recv (stcp->usock, &stcp->inhdr,
-                     sizeof (stcp->inhdr));
+                     sizeof (stcp->inhdr), NULL);
 
                  /*  Mark the pipe as available for sending. */
                  stcp->outstate = NN_STCP_OUTSTATE_IDLE;
@@ -322,9 +324,21 @@ static void nn_stcp_handler (struct nn_fsm *self, int src, int type,
                 switch (stcp->instate) {
                 case NN_STCP_INSTATE_HDR:
 
-                    /*  Message header was received. Allocate memory for the
-                        message. */
+                    /*  Message header was received. Check that message size
+                        is acceptable by comparing with NN_RCVMAXSIZE;
+                        if it's too large, drop the connection. */
                     size = nn_getll (stcp->inhdr);
+
+                    nn_pipebase_getopt (&stcp->pipebase, NN_SOL_SOCKET,
+                        NN_RCVMAXSIZE, &opt, &opt_sz);
+
+                    if (opt >= 0 && size > (unsigned)opt) {
+                        stcp->state = NN_STCP_STATE_DONE;
+                        nn_fsm_raise (&stcp->fsm, &stcp->done, NN_STCP_ERROR);
+                        return;
+                    }
+
+                    /*  Allocate memory for the message. */
                     nn_msg_term (&stcp->inmsg);
                     nn_msg_init (&stcp->inmsg, (size_t) size);
 
@@ -338,7 +352,8 @@ static void nn_stcp_handler (struct nn_fsm *self, int src, int type,
                     /*  Start receiving the message body. */
                     stcp->instate = NN_STCP_INSTATE_BODY;
                     nn_usock_recv (stcp->usock,
-                        nn_chunkref_data (&stcp->inmsg.body), (size_t) size);
+                        nn_chunkref_data (&stcp->inmsg.body),
+                       (size_t) size, NULL);
 
                     return;
 

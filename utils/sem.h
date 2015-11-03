@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_SEM_INCLUDED
-#define NN_SEM_INCLUDED 1
+#define NN_SEM_INCLUDED
 
 /*  Simple semaphore. It can have only two values (0/1 i.e. locked/unlocked). */
 
@@ -68,4 +68,3 @@ struct nn_sem {
 //#endif
 
 #endif
-

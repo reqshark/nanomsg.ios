@@ -122,6 +122,7 @@ int nn_sock_init (struct nn_sock *self, struct nn_socktype *socktype, int fd)
     self->linger = 1000;
     self->sndbuf = 128 * 1024;
     self->rcvbuf = 128 * 1024;
+    self->rcvmaxsize = 1024 * 1024;
     self->sndtimeo = -1;
     self->rcvtimeo = -1;
     self->reconnect_ivl = 100;
@@ -313,6 +314,11 @@ static int nn_sock_setopt_inner (struct nn_sock *self, int level,
                 return -EINVAL;
             dst = &self->rcvbuf;
             break;
+        case NN_RCVMAXSIZE:
+            if (nn_slow (val < -1))
+                return -EINVAL;
+            dst = &self->rcvmaxsize;
+            break;
         case NN_SNDTIMEO:
             dst = &self->sndtimeo;
             break;
@@ -396,6 +402,9 @@ int nn_sock_getopt_inner (struct nn_sock *self, int level,
             break;
         case NN_RCVBUF:
             intval = self->rcvbuf;
+            break;
+        case NN_RCVMAXSIZE:
+            intval = self->rcvmaxsize;
             break;
         case NN_SNDTIMEO:
             intval = self->sndtimeo;
@@ -592,7 +601,7 @@ int nn_sock_send (struct nn_sock *self, struct nn_msg *msg, int flags)
         nn_ctx_leave (&self->ctx);
         rc = nn_efd_wait (&self->sndfd, timeout);
         if (nn_slow (rc == -ETIMEDOUT))
-            return -EAGAIN;
+            return -ETIMEDOUT;
         if (nn_slow (rc == -EINTR))
             return -EINTR;
         errnum_assert (rc == 0, rc);
@@ -670,7 +679,7 @@ int nn_sock_recv (struct nn_sock *self, struct nn_msg *msg, int flags)
         nn_ctx_leave (&self->ctx);
         rc = nn_efd_wait (&self->rcvfd, timeout);
         if (nn_slow (rc == -ETIMEDOUT))
-            return -EAGAIN;
+            return -ETIMEDOUT;
         if (nn_slow (rc == -EINTR))
             return -EINTR;
         errnum_assert (rc == 0, rc);
@@ -824,11 +833,14 @@ static void nn_sock_shutdown (struct nn_fsm *self, int src, int type,
     }
     if (nn_slow (sock->state == NN_SOCK_STATE_STOPPING_EPS)) {
 
-        /*  Endpoint is stopped. Now we can safely deallocate it. */
         if (!(src == NN_SOCK_SRC_EP && type == NN_EP_STOPPED)) {
-          fprintf (stderr, "src=%d type=%d\n", (int) src, (int) type);
-          nn_assert (src == NN_SOCK_SRC_EP && type == NN_EP_STOPPED);
+            /*  If we got here waiting for EPs to teardown, but src is
+                not an EP, then it isn't safe for us to do anything,
+                because we just need to wait for the EPs to finish
+                up their thing.  Just bail. */
+            return;
         }
+        /*  Endpoint is stopped. Now we can safely deallocate it. */
         ep = (struct nn_ep*) srcptr;
         nn_list_erase (&sock->sdeps, &ep->item);
         nn_ep_term (ep);

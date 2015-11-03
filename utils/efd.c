@@ -107,6 +107,7 @@ void nn_efd_unsignal (struct nn_efd *self)
             break;
     }
 }
+//#include "efd_pipe.inc"
 //#elif defined NN_HAVE_SOCKETPAIR
 //#include "efd_socketpair.inc"
 //#else
@@ -155,4 +156,3 @@ int nn_efd_wait (struct nn_efd *self, int timeout)
 //#else
 //#error
 //#endif
-

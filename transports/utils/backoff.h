@@ -21,7 +21,7 @@
 */
 
 #ifndef NN_BACKOFF_INCLUDED
-#define NN_BACKOFF_INCLUDED 1
+#define NN_BACKOFF_INCLUDED
 
 #include "../../aio/timer.h"
 

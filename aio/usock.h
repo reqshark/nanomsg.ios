@@ -25,12 +25,6 @@
 
 /*  Import the definition of nn_iovec. */
 #include "../nn.h"
-#include "fsm.h"
-#include "worker.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/uio.h>
 
 /*  OS-level sockets. */
 
@@ -50,6 +44,15 @@
 /*  Size of the buffer used for batch-reads of inbound data. To keep the
     performance optimal make sure that this value is larger than network MTU. */
 #define NN_USOCK_BATCH_SIZE 2048
+
+#include "fsm.h"
+#include "worker.h"
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/uio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 struct nn_usock {
 
@@ -81,6 +84,9 @@ struct nn_usock {
             position were already received by the user. The data that follow
             will be received in the future. */
         size_t batch_pos;
+
+        /*  File descriptor received via SCM_RIGHTS, if any. */
+        int *pfd;
     } in;
 
     /*  Members related to sending data. */
@@ -115,11 +121,15 @@ struct nn_usock {
     int errnum;
 };
 
+//#endif
+
 void nn_usock_init (struct nn_usock *self, int src, struct nn_fsm *owner);
 void nn_usock_term (struct nn_usock *self);
 
 int nn_usock_isidle (struct nn_usock *self);
-int nn_usock_start (struct nn_usock *self, int domain, int type, int protocol);
+int nn_usock_start (struct nn_usock *self,
+    int domain, int type, int protocol);
+void nn_usock_start_fd (struct nn_usock *self, int fd);
 void nn_usock_stop (struct nn_usock *self);
 
 void nn_usock_swap_owner (struct nn_usock *self, struct nn_fsm_owner *owner);
@@ -149,7 +159,7 @@ void nn_usock_connect (struct nn_usock *self, const struct sockaddr *addr,
 
 void nn_usock_send (struct nn_usock *self, const struct nn_iovec *iov,
     int iovcnt);
-void nn_usock_recv (struct nn_usock *self, void *buf, size_t len);
+void nn_usock_recv (struct nn_usock *self, void *buf, size_t len, int *fd);
 
 int nn_usock_geterrno (struct nn_usock *self);
 

@@ -28,7 +28,7 @@
 /*  Worker thread pool. */
 
 struct nn_pool {
-  struct nn_worker worker;
+    struct nn_worker worker;
 };
 
 int nn_pool_init (struct nn_pool *self);

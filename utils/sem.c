@@ -24,7 +24,6 @@
 #include "err.h"
 #include "fast.h"
 
-
 //#if defined NN_HAVE_OSX
 
 void nn_sem_init (struct nn_sem *self)
@@ -92,7 +91,7 @@ int nn_sem_wait (struct nn_sem *self)
     return 0;
 }
 
-//#elif defined NN_HAVE_WINDOWS
+////#elif defined NN_HAVE_WINDOWS
 
 //void nn_sem_init (struct nn_sem *self)
 //{
@@ -102,7 +101,7 @@ int nn_sem_wait (struct nn_sem *self)
 
 //void nn_sem_term (struct nn_sem *self)
 //{
-//    BOOL brc;
+//    BOOL brc;//
 
 //    brc = CloseHandle (self->h);
 //    win_assert (brc);
@@ -110,7 +109,7 @@ int nn_sem_wait (struct nn_sem *self)
 
 //void nn_sem_post (struct nn_sem *self)
 //{
-//    BOOL brc;
+//    BOOL brc;//
 
 //    brc = SetEvent (self->h);
 //    win_assert (brc);
@@ -118,11 +117,11 @@ int nn_sem_wait (struct nn_sem *self)
 
 //int nn_sem_wait (struct nn_sem *self)
 //{
-//    DWORD rc;
+//    DWORD rc;//
 
 //    rc = WaitForSingleObject (self->h, INFINITE);
 //    win_assert (rc != WAIT_FAILED);
-//    nn_assert (rc == WAIT_OBJECT_0);
+//    nn_assert (rc == WAIT_OBJECT_0);//
 
 //    return 0;
 //}
@@ -131,7 +130,7 @@ int nn_sem_wait (struct nn_sem *self)
 
 //void nn_sem_init (struct nn_sem *self)
 //{
-//    int rc;
+//    int rc;//
 
 //    rc = sem_init (&self->sem, 0, 0);
 //    errno_assert (rc == 0);
@@ -139,7 +138,7 @@ int nn_sem_wait (struct nn_sem *self)
 
 //void nn_sem_term (struct nn_sem *self)
 //{
-//    int rc;
+//    int rc;//
 
 //    rc = sem_destroy (&self->sem);
 //    errno_assert (rc == 0);
@@ -147,7 +146,7 @@ int nn_sem_wait (struct nn_sem *self)
 
 //void nn_sem_post (struct nn_sem *self)
 //{
-//    int rc;
+//    int rc;//
 
 //    rc = sem_post (&self->sem);
 //    errno_assert (rc == 0);
@@ -155,7 +154,7 @@ int nn_sem_wait (struct nn_sem *self)
 
 //int nn_sem_wait (struct nn_sem *self)
 //{
-//    int rc;
+//    int rc;//
 
 //    rc = sem_wait (&self->sem);
 //    if (nn_slow (rc < 0 && errno == EINTR))
@@ -167,4 +166,3 @@ int nn_sem_wait (struct nn_sem *self)
 //#else
 //#error
 //#endif
-

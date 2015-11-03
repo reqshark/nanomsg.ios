@@ -76,7 +76,7 @@
 //            return -1;
 //        }
 //    }
-//    else {//
+//    else {
 
 //        //  POSIX platforms will sleep until timeout is expired,
 //        //  so let's do the same on Windows.
