@@ -23,15 +23,18 @@
 #ifndef NN_THREAD_INCLUDED
 #define NN_THREAD_INCLUDED
 
-/*  Platform independent implementation of threading. */
+#include <pthread.h>
+
+/*  thread_posix implementation of threading. */
 
 typedef void (nn_thread_routine) (void*);
 
-//#if defined NN_HAVE_WINDOWS
-//#include "thread_win.h"
-//#else
-#include "thread_posix.h"
-//#endif
+struct nn_thread
+{
+    nn_thread_routine *routine;
+    void *arg;
+    pthread_t handle;
+};
 
 void nn_thread_init (struct nn_thread *self,
     nn_thread_routine *routine, void *arg);
