@@ -28,7 +28,7 @@
 #include "pipeline.h"
 #include "sleep.h"
 
-/* test a nanomsg pub/sub over TCP transport. */
+/* test a nanomsg pair over TCP transport. */
 
 #define SOCKET_ADDRESS "inproc://yo"
 
