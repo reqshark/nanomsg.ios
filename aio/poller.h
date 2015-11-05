@@ -35,45 +35,10 @@
 
 #include <sys/event.h>
 
-// the header for regular poll is commented out here
-// we'll go with kqueue for now since it worked well for ios in beta-5
-// i am open to switching the multiplexing approach to poll. -reqshark
-
 // these macros were specific to the POLL header but still needed by kqueue
 #define NN_POLLER_IN 1
 #define NN_POLLER_OUT 2
 #define NN_POLLER_ERR 3
-
-//struct nn_poller_hndl {
-//    int index;
-//};
-
-//struct nn_poller {
-
-//    /*  Actual number of elements in the pollset. */
-//    int size;
-
-//    /*  Index of the event being processed at the moment. */
-//    int index;
-
-//    /*  Number of allocated elements in the pollset. */
-//    int capacity;
-
-//    /*  The pollset. */
-//    struct pollfd *pollset;
-
-//    /*  List of handles associated with elements in the pollset. Either points
-//        to the handle associated with the file descriptor (hndl) or is part
-//        of the list of removed pollitems (removed). */
-//    struct nn_hndls_item {
-//        struct nn_poller_hndl *hndl;
-//        int prev;
-//        int next;
-//    } *hndls;
-
-//    /*  List of removed pollitems, linked by indices. -1 means empty list. */
-//    int removed;
-//};
 
 struct nn_poller_hndl {
     int fd;

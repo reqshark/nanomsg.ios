@@ -394,5 +394,3 @@ int nn_poller_event (struct nn_poller *self, int *event,
 
     return 0;
 }
-
-//#endif

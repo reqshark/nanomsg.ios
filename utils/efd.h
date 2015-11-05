@@ -29,21 +29,11 @@
 
 #include "fd.h"
 
-//#if defined NN_HAVE_WINDOWS
-//#include "efd_win.h"
-//#elif defined NN_HAVE_EVENTFD
-//#include "efd_eventfd.h"
-//#elif defined NN_HAVE_PIPE
+/*  For iOS we move edf_pipe.h into this file */
 struct nn_efd {
     int r;
     int w;
 };
-//#include "efd_pipe.h"
-//#elif defined NN_HAVE_SOCKETPAIR
-//#include "efd_socketpair.h"
-//#else
-//#error
-//#endif
 
 /*  Initialise the efd object. */
 int nn_efd_init (struct nn_efd *self);

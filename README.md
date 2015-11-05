@@ -33,27 +33,38 @@ and make sure to create groups (not folder references).
 
 int main(int argc, const char * argv[]) {
 
-  //set up some sockets
-  int s1 = nn_socket (AF_SP, NN_PUSH);
-  int s2 = nn_socket (AF_SP, NN_PULL);
+  /* set up some pub sub sockets */
+  int s1 = nn_socket (AF_SP, NN_PUB);
+  int s2 = nn_socket (AF_SP, NN_SUB);
 
-  //bind and connect sockets
+  /* subscriber needs to be switched on with a string filter, "" for all msgs */
+  int r = nn_setsockopt (s2, NN_SUB, NN_SUB_SUBSCRIBE, "", 0);
+  if(r > -1){
+    printf ("subscriber socket set\n");
+  } else {
+    printf ("error setting subscription socket: %d\n", r);
+    // return 1;
+  }
+
+  /* bind and connect sockets */
   nn_bind (s1, SOCKET_ADDRESS);
   nn_connect (s2, SOCKET_ADDRESS);
   nn_sleep (10);
 
-  //send a message
+  /* send a message */
   char *msg = "0123456789012345678901234567890123456789";
   nn_send (s1, msg, strlen(msg), 0);
 
-  //recv a message
-  //allocate incoming message to the address of a buffer
+  /* recv and allocate message to the address of a buffer */
   char *buf = NULL;
-  nn_recv (s2, &buf, NN_MSG, 0);
+  int sz = nn_recv (s2, &buf, NN_MSG, 0);
+  buf[sz] = '\0';
+
   printf("cool: %s\n",buf);
 
-  //free that allocation
+  /* free that allocation */
   nn_freemsg (buf);
+
   //return 0;
 
 }
