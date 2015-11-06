@@ -30,7 +30,7 @@
 
 /* test a nanomsg pair over TCP transport. */
 
-#define SOCKET_ADDRESS "tcp://127.0.0.1:5555"
+#define ADDR "tcp://127.0.0.1:5555"
 
 
 @interface ViewController ()
@@ -47,8 +47,8 @@
   int s2 = nn_socket (AF_SP, NN_PULL);
 
   //bind and connect sockets
-  nn_bind (s1, SOCKET_ADDRESS);
-  nn_connect (s2, SOCKET_ADDRESS);
+  nn_bind (s1, ADDR);
+  nn_connect (s2, ADDR);
   nn_sleep (10);
 
   //send a message

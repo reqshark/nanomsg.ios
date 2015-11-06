@@ -18,57 +18,26 @@
     IN THE SOFTWARE.
 */
 
-#import "ViewController.h"
-
-#include <stdio.h>
-#include <string.h>
+#ifndef fdpoll
+#define fdpoll
 
 #include "nn.h"
-#include "ws.h"
-#include "pipeline.h"
+#include "pubsub.h"
+#include "tcp.h"
 #include "sleep.h"
 
-/* test a nanomsg pair over TCP transport. */
+#include "poller.h"
+#include <sys/select.h>
 
-#define ADDR "ws://127.0.0.1:5555"
+#define ADDR "tcp://127.0.0.1:5555" // use a remote address from your topology
+#define NN_IN 1
+#define NN_OUT 2
 
+int getevents (int s, int events, int timeout);
 
-@interface ViewController ()
+int optval = 1;
+size_t optlen = sizeof optval;
 
-@end
+char* msgGet(int s);
 
-@implementation ViewController
-
-- (void)viewDidLoad {
-  [super viewDidLoad];
-
-  //set up some sockets
-  int s1 = nn_socket (AF_SP, NN_PUSH);
-  int s2 = nn_socket (AF_SP, NN_PULL);
-
-  //bind and connect sockets
-  nn_bind (s1, ADDR);
-  nn_connect (s2, ADDR);
-  nn_sleep (10);
-
-  //send a message
-  char *msg = "0123456789012345678901234567890123456789";
-  nn_send (s1, msg, strlen(msg), 0);
-
-  //recv a message
-  //allocate incoming message to the address of a buffer
-  char *buf = NULL;
-  nn_recv (s2, &buf, NN_MSG, 0);
-  printf("cool: %s\n",buf);
-
-  //free that allocation
-  nn_freemsg (buf);
-
-}
-
-- (void)didReceiveMemoryWarning {
-  [super didReceiveMemoryWarning];
-  // Dispose of any resources that can be recreated.
-}
-
-@end
+#endif

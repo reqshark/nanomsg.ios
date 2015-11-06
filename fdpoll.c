@@ -18,57 +18,44 @@
     IN THE SOFTWARE.
 */
 
-#import "ViewController.h"
-
-#include <stdio.h>
-#include <string.h>
-
 #include "nn.h"
-#include "ws.h"
-#include "pipeline.h"
-#include "sleep.h"
+#include "fdpoll.h"
 
-/* test a nanomsg pair over TCP transport. */
+int s, r, eid;
 
-#define ADDR "ws://127.0.0.1:5555"
+int getevents (int s, int events, int timeout){
+  int rcvfd, maxfd, grc, revents;
+  size_t fdsz;
+  struct timeval tv;
 
+  fd_set pollset;
+  maxfd = 0;
+  FD_ZERO (&pollset);
 
-@interface ViewController ()
+  if (events & NN_IN) {
+    fdsz = sizeof (rcvfd);
+    grc = nn_getsockopt (s, NN_SOL_SOCKET, NN_RCVFD, (char*) &rcvfd, &fdsz);
+    FD_SET (rcvfd, &pollset);
+    if (rcvfd + 1 > maxfd)
+      maxfd = rcvfd + 1;
+  }
 
-@end
+  if (timeout >= 0) {
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = (timeout % 1000) * 1000;
+  }
 
-@implementation ViewController
+  select (maxfd, &pollset, NULL, NULL, timeout < 0 ? NULL : &tv);
+  revents = 0;
+  if ((events & NN_IN) && FD_ISSET (rcvfd, &pollset))
+    revents |= NN_IN;
+  return revents;
+}
 
-- (void)viewDidLoad {
-  [super viewDidLoad];
-
-  //set up some sockets
-  int s1 = nn_socket (AF_SP, NN_PUSH);
-  int s2 = nn_socket (AF_SP, NN_PULL);
-
-  //bind and connect sockets
-  nn_bind (s1, ADDR);
-  nn_connect (s2, ADDR);
-  nn_sleep (10);
-
-  //send a message
-  char *msg = "0123456789012345678901234567890123456789";
-  nn_send (s1, msg, strlen(msg), 0);
-
-  //recv a message
-  //allocate incoming message to the address of a buffer
+char* msgGet(int s){
   char *buf = NULL;
-  nn_recv (s2, &buf, NN_MSG, 0);
-  printf("cool: %s\n",buf);
-
-  //free that allocation
-  nn_freemsg (buf);
-
+  nn_recv (s, &buf, NN_MSG, 0);
+  int sz = nn_recv (s, &buf, NN_MSG, 0);
+  buf[sz] = '\0';
+  return buf;
 }
-
-- (void)didReceiveMemoryWarning {
-  [super didReceiveMemoryWarning];
-  // Dispose of any resources that can be recreated.
-}
-
-@end

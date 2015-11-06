@@ -19,12 +19,7 @@
 */
 
 #import "ViewController.h"
-#include "nn.h"
-#include "pubsub.h"
-#include "tcp.h"
-#include "sleep.h"
-
-#define ADDR "tcp://127.0.01:4444"
+#include "fdpoll.h"
 
 @interface ViewController ()
 
@@ -46,27 +41,24 @@
     // return 1;
   }
 
-  /* connect sockets */
+  /* connect socket */
   nn_connect (s, ADDR);
   nn_sleep (10);
 
-  /* simplest version without fd poll */
-  dispatch_queue_t loop = dispatch_queue_create("loop", NULL);
-  dispatch_async(loop, ^{
-    while (1) {
-      char *buf = NULL;
-      int sz = nn_recv (s, &buf, NN_MSG, 0);
-      buf[sz] = '\0';
+  /* using a global background queue */
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+    while(1) {
+      if(getevents(s, NN_IN, 10) == 1) {
 
-      /* copy buffer as an NSString before freeing it */
-      NSString *msg = @(strcat(buf,"\n"));
-      nn_freemsg (buf);
+        char *buf = msgGet(s);
+        NSString *msg = @(strcat(buf,"\n"));
+        nn_freemsg (buf);
 
-      /* interrupt grand central dispatch and do something w/ the NSString */
-      dispatch_async(dispatch_get_main_queue(), ^{
-        printf("dispatch async fired\n");
-        NSLog(@"%@", msg);
-      });
+        dispatch_async(dispatch_get_main_queue(), ^{
+          printf("dispatch async fired\n");
+          NSLog(@"%@", msg);
+        });
+      }
     }
   });
 }
