@@ -6,6 +6,8 @@ simplest recv socket without fd poll. may consume high device energy.
 ## [tcp_local_sub_objc_lowenergy.m](ViewController.m/tcp_local_sub_objc_lowenergy.m)
 low energy version helps spare device battery.
 
+![energyreport](http://cldup.com/GhJ9Ys75wQ-3000x3000.png)
+
 Uses nanomsg fd poll composed into a utility function:
 ```c
 int getevents (int s, int events, int timeout);
@@ -39,6 +41,8 @@ dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0),
   }
 });
 ```
+
+![procview](http://cldup.com/KpO85rO_vN-3000x3000.png)
 
 ## [ws_fancy.m](ViewController.m/ws_fancy.m)
 using nanomsg posix threads example uses websocket transport for msg delivery

@@ -18,7 +18,6 @@
     IN THE SOFTWARE.
 */
 
-#include "nn.h"
 #include "fdpoll.h"
 
 int s, r, eid;
