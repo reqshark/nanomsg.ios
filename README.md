@@ -17,6 +17,8 @@ and make sure to create groups (not folder references).
 *note: in Xcode 7, click options (next to new folder) to choose 'Create groups'*
 
 # example
+also some sample `ViewController.m` files are in the
+[`examples` branch](https://github.com/reqshark/nanomsg.ios/tree/examples)
 
 ```c
 #include <stdio.h>
