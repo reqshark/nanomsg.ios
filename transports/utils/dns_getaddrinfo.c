@@ -28,11 +28,11 @@
 
 #include <string.h>
 
-#ifndef NN_HAVE_WINDOWS
+//#ifndef NN_HAVE_WINDOWS
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#endif
+//#endif
 
 #define NN_DNS_STATE_IDLE 1
 #define NN_DNS_STATE_DONE 2
@@ -179,4 +179,3 @@ static void nn_dns_handler (struct nn_fsm *self, int src, int type,
         nn_fsm_bad_state (dns->state, src, type);
     }
 }
-

@@ -20,11 +20,11 @@
     IN THE SOFTWARE.
 */
 
-#if defined NN_HAVE_WINDOWS
-#include "../../utils/win.h"
-#else
+// #if defined NN_HAVE_WINDOWS
+// #include "../../utils/win.h"
+// #else
 #include <sys/socket.h>
-#endif
+// #endif
 
 struct nn_dns {
     struct nn_fsm fsm;
@@ -32,4 +32,3 @@ struct nn_dns {
     struct nn_dns_result *result;
     struct nn_fsm_event done;
 };
-

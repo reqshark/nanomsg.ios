@@ -35,11 +35,11 @@ int nn_dns_check_hostname (const char *name, size_t namelen);
 #define NN_DNS_DONE 1
 #define NN_DNS_STOPPED 2
 
-#if defined NN_HAVE_GETADDRINFO_A && !defined NN_DISABLE_GETADDRINFO_A
-#include "dns_getaddrinfo_a.h"
-#else
+// #if defined NN_HAVE_GETADDRINFO_A && !defined NN_DISABLE_GETADDRINFO_A
+// #include "dns_getaddrinfo_a.h"
+// #else
 #include "dns_getaddrinfo.h"
-#endif
+// #endif
 
 struct nn_dns_result {
     int error;
